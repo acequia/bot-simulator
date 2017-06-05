@@ -1,6 +1,8 @@
 require 'bunny'
 require_relative '../utils/credentials'
 
+queue = ARGV[0] || 'test_queue'
+
 conn = Bunny.new hostname: Credentials.host,
   username: Credentials.username,
   password: Credentials.password
@@ -8,12 +10,15 @@ conn = Bunny.new hostname: Credentials.host,
 conn.start
 
 ch = conn.create_channel
-q = ch.queue 'amqp_test', durable: true
+q = ch.queue queue, durable: true
 
 puts 'Publishing...'
 
-ch.default_exchange.publish('some message!!', routing_key: q.name)
+# Fake measure
+message = rand(50)
 
-puts "Sent 'some message!!'"
+ch.default_exchange.publish(message, routing_key: q.name)
+
+puts "Sent #{message} to #{queue}"
 
 conn.close
