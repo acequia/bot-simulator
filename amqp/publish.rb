@@ -1,7 +1,8 @@
 require 'bunny'
 require_relative '../utils/credentials'
 
-queue = ARGV[0] || 'test_queue'
+user_id = ARGV[0] || 1703051
+routing_key = "bots.#{user_id}"
 
 conn = Bunny.new hostname: Credentials.host,
   username: Credentials.username,
@@ -9,16 +10,19 @@ conn = Bunny.new hostname: Credentials.host,
 
 conn.start
 
-ch = conn.create_channel
-q = ch.queue queue, durable: true
+channel = conn.create_channel
+
+# We need to bound our queue to the MQTT exchange
+exchange = channel.topic 'vaquita.mqtt', durable: true
+
+q = channel.queue('', durable: false, auto_delete: true).bind exchange, routing_key: routing_key
 
 puts 'Publishing...'
 
-# Fake measure
-message = rand(50)
+message = "temperature to #{rand(50)}"
 
-ch.default_exchange.publish(message, routing_key: q.name)
+exchange.publish(message, routing_key: routing_key)
 
-puts "Sent #{message} to #{queue}"
+puts "Sent control message: '#{message}' to #{routing_key}"
 
 conn.close
